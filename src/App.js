@@ -40,7 +40,8 @@ function App() {
   const filteredData = data
     .filter(item => (selectedNama ? item.nama === selectedNama.value : true))
     .filter(item => {
-      const tanggalItem = new Date(item.tanggal);
+      const [year, month, day] = item.tanggal.split('-').map(Number);
+const tanggalItem = new Date(year, month - 1, day); // Jam 00:00:00 lokal
       if (startDate && tanggalItem < startDate) return false;
       if (endDate && tanggalItem > endDate) return false;
       return true;
