@@ -95,18 +95,30 @@ export const fetchAllPresensiData = async () => {
           };
         }
 
-        if (data.jenis === 'pulang') {
-          if (data.waktuPulang?.toDate) {
-            hasilUser[tanggalIzin].jamPulang = data.waktuPulang
-              .toDate()
-              .toLocaleTimeString('id-ID');
-          } else if (data.mulai?.toDate) {
-            hasilUser[tanggalIzin].jamPulang = data.mulai
-              .toDate()
-              .toLocaleTimeString('id-ID');
-          }
-          hasilUser[tanggalIzin].alasanPulang = data.alasan || '-';
-        } else {
+if (data.jenis === 'pulang') {
+  // Urutan prioritas ambil jam pulang dari izin
+  if (data.jam) {
+    // Kalau di Firestore disimpan sebagai string HH:mm
+    hasilUser[tanggalIzin].jamPulang = data.jam;
+  } else if (data.waktuPulang?.toDate) {
+    hasilUser[tanggalIzin].jamPulang = data.waktuPulang
+      .toDate()
+      .toLocaleTimeString('id-ID');
+  } else if (data.mulai?.toDate) {
+    hasilUser[tanggalIzin].jamPulang = data.mulai
+      .toDate()
+      .toLocaleTimeString('id-ID');
+  } else if (data.timestamp?.toDate) {
+    // fallback terakhir: pakai timestamp dokumen izin
+    hasilUser[tanggalIzin].jamPulang = data.timestamp
+      .toDate()
+      .toLocaleTimeString('id-ID');
+  }
+
+  hasilUser[tanggalIzin].alasanPulang = data.alasan || '-';
+}
+
+        else {
           if (data.mulai?.toDate) {
             hasilUser[tanggalIzin].jamIzin = data.mulai
               .toDate()
