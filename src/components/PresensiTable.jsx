@@ -18,6 +18,7 @@ const thStyle = {
 const tdStyle = {
   border: '1px solid #ddd',
   padding: '10px',
+  verticalAlign: 'top',
 };
 
 const rowEvenStyle = {
@@ -54,8 +55,16 @@ const PresensiTable = ({ data }) => {
             <tr key={index} style={index % 2 === 0 ? rowEvenStyle : rowOddStyle}>
               <td style={tdStyle}>{item.nama}</td>
               <td style={tdStyle}>{item.tanggal}</td>
-              <td style={tdStyle}>{item.jamDatang || '-'}</td>
-              <td style={tdStyle}>{item.jamPulang || '-'}</td>
+              <td style={tdStyle}>
+                {item.jamDatang
+                  ? `${item.jamDatang}${item.alasanTerlambat ? ` (${item.alasanTerlambat})` : ''}`
+                  : '-'}
+              </td>
+              <td style={tdStyle}>
+                {item.jamPulang
+                  ? `${item.jamPulang}${item.alasanIzin ? ` (${item.alasanIzin})` : ''}`
+                  : '-'}
+              </td>
               <td style={tdStyle}>{item.jamIzin || '-'}</td>
               <td style={tdStyle}>{item.jamKembali || '-'}</td>
               <td

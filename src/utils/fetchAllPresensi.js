@@ -1,4 +1,4 @@
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from './firebase';
 
 export const fetchAllPresensiData = async () => {
@@ -7,29 +7,37 @@ export const fetchAllPresensiData = async () => {
   try {
     const userSnapshot = await getDocs(collection(db, 'users'));
     const izinSnapshot = await getDocs(collection(db, 'izin'));
+    const izinTerlambatSnapshot = await getDocs(collection(db, 'izinTerlambat'));
 
     for (const userDoc of userSnapshot.docs) {
       const uid = userDoc.id;
       const nama = userDoc.data().nama || 'Tanpa Nama';
       const hasilUser = {};
 
+      // Presensi Harian
       const presensiSnapshot = await getDocs(collection(db, `users/${uid}/presensi`));
 
       for (const presensiDoc of presensiSnapshot.docs) {
         const tanggal = presensiDoc.id;
-        const logsSnapshot = await getDocs(collection(db, `users/${uid}/presensi/${tanggal}/logs`));
+        const logsSnapshot = await getDocs(
+          collection(db, `users/${uid}/presensi/${tanggal}/logs`)
+        );
 
         const item = {
           nama,
           tanggal,
           jamDatang: null,
           jamPulang: null,
+          alasanTerlambat: null,
+          jamIzin: null,
+          jamKembali: null,
+          alasanIzin: null,
           denda: 0,
         };
 
         logsSnapshot.forEach((doc) => {
           const data = doc.data();
-          const waktu = data.timestamp?.toDate?.(); // check if toDate exists
+          const waktu = data.timestamp?.toDate?.();
           if (!waktu) return;
 
           if (data.jenis === 'Masuk') {
@@ -54,14 +62,12 @@ export const fetchAllPresensiData = async () => {
         hasilUser[tanggal] = item;
       }
 
-      // Proses izin
+      // Izin Pulang
       izinSnapshot.forEach((doc) => {
         const data = doc.data();
         if (data.uid !== uid) return;
 
         let tanggalIzin = null;
-
-        // Coba deteksi jenis tanggal
         if (data.tanggal instanceof Date) {
           tanggalIzin = data.tanggal.toISOString().split('T')[0];
         } else if (data.tanggal?.toDate) {
@@ -69,7 +75,6 @@ export const fetchAllPresensiData = async () => {
         } else if (typeof data.tanggal === 'string') {
           tanggalIzin = data.tanggal;
         }
-
         if (!tanggalIzin) return;
 
         if (!hasilUser[tanggalIzin]) {
@@ -79,16 +84,38 @@ export const fetchAllPresensiData = async () => {
         if (data.mulai?.toDate) {
           hasilUser[tanggalIzin].jamIzin = data.mulai.toDate().toLocaleTimeString('id-ID');
         }
-
         if (data.kembali?.toDate) {
           hasilUser[tanggalIzin].jamKembali = data.kembali.toDate().toLocaleTimeString('id-ID');
         }
+        if (data.alasan) {
+          hasilUser[tanggalIzin].alasanIzin = data.alasan;
+        }
+      });
+
+      // Izin Terlambat
+      izinTerlambatSnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.uid !== uid) return;
+
+        let tanggalTerlambat = null;
+        if (data.timestamp instanceof Date) {
+          tanggalTerlambat = data.timestamp.toISOString().split('T')[0];
+        } else if (data.timestamp?.toDate) {
+          tanggalTerlambat = data.timestamp.toDate().toISOString().split('T')[0];
+        }
+        if (!tanggalTerlambat) return;
+
+        if (!hasilUser[tanggalTerlambat]) {
+          hasilUser[tanggalTerlambat] = { nama, tanggal: tanggalTerlambat };
+        }
+
+        hasilUser[tanggalTerlambat].alasanTerlambat = data.alasan || null;
       });
 
       hasilAkhir.push(...Object.values(hasilUser));
     }
 
-    // Urutkan dari tanggal terbaru
+    // Urutkan dari terbaru
     return hasilAkhir.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
   } catch (error) {
     console.error('❌ Gagal ambil data:', error);
