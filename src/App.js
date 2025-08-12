@@ -6,7 +6,119 @@ import PresensiTable from './components/PresensiTable';
 import { fetchAllPresensiData } from './utils/fetchAllPresensi';
 import { exportToExcel } from './utils/excelExport';
 
-function App() {
+// ===== Komponen Login =====
+function Login({ onLogin }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (username === 'donanovita' && password === '123456') {
+      onLogin();
+    } else {
+      setError('Username atau password salah');
+    }
+  };
+
+  return (
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '100vh',
+      fontFamily: 'Arial, sans-serif',
+      backgroundColor: '#fff'
+    }}>
+      <form
+        onSubmit={handleSubmit}
+        style={{
+          backgroundColor: '#fff',
+          padding: '30px 40px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          minWidth: '320px',
+          border: '1px solid #eee'
+        }}
+      >
+        <h2 style={{
+          textAlign: 'center',
+          marginBottom: 20,
+          color: '#333'
+        }}>Login</h2>
+
+        <div style={{ marginBottom: 15 }}>
+          <label style={{ fontWeight: 500, fontSize: 14 }}>Username</label>
+          <input
+            type="text"
+            value={username}
+            onChange={e => setUsername(e.target.value)}
+            style={{
+              width: '100%',
+              padding: 10,
+              marginTop: 4,
+              borderRadius: 6,
+              border: '1px solid #ccc',
+              fontSize: 14
+            }}
+            placeholder="Masukkan username"
+          />
+        </div>
+
+        <div style={{ marginBottom: 15 }}>
+          <label style={{ fontWeight: 500, fontSize: 14 }}>Password</label>
+          <input
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            style={{
+              width: '100%',
+              padding: 10,
+              marginTop: 4,
+              borderRadius: 6,
+              border: '1px solid #ccc',
+              fontSize: 14
+            }}
+            placeholder="Masukkan password"
+          />
+        </div>
+
+        {error && (
+          <div style={{
+            color: '#d9534f',
+            fontSize: 13,
+            marginBottom: 10,
+            textAlign: 'center'
+          }}>
+            {error}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          style={{
+            width: '100%',
+            padding: 10,
+            backgroundColor: '#2196F3',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 6,
+            fontWeight: 'bold',
+            fontSize: 14,
+            cursor: 'pointer'
+          }}
+        >
+          Login
+        </button>
+      </form>
+    </div>
+  );
+}
+
+
+
+// ===== Halaman Rekap Presensi =====
+function RekapPresensi() {
   const [data, setData] = useState([]);
   const [selectedNama, setSelectedNama] = useState(null);
   const [dateRange, setDateRange] = useState([null, null]);
@@ -41,7 +153,7 @@ function App() {
     .filter(item => (selectedNama ? item.nama === selectedNama.value : true))
     .filter(item => {
       const [year, month, day] = item.tanggal.split('-').map(Number);
-const tanggalItem = new Date(year, month - 1, day); // Jam 00:00:00 lokal
+      const tanggalItem = new Date(year, month - 1, day);
       if (startDate && tanggalItem < startDate) return false;
       if (endDate && tanggalItem > endDate) return false;
       return true;
@@ -52,7 +164,7 @@ const tanggalItem = new Date(year, month - 1, day); // Jam 00:00:00 lokal
     <div style={styles.container}>
       <h2 style={styles.title}>Rekap Presensi</h2>
 
-      {/* 👤 Picker Nama Karyawan */}
+      {/* Picker Nama */}
       <div style={{ marginBottom: 15 }}>
         <Select
           options={namaOptions}
@@ -64,7 +176,7 @@ const tanggalItem = new Date(year, month - 1, day); // Jam 00:00:00 lokal
         />
       </div>
 
-      {/* 📅 Rentang Tanggal */}
+      {/* Rentang Tanggal */}
       <div style={styles.fullRow}>
         <div style={{ flex: 1 }}>
           <label style={styles.label}>Rentang Tanggal:</label>
@@ -81,7 +193,7 @@ const tanggalItem = new Date(year, month - 1, day); // Jam 00:00:00 lokal
         </div>
       </div>
 
-      {/* 🔘 Checkbox dan Aksi */}
+      {/* Checkbox & Aksi */}
       <div style={styles.bottomActions}>
         <label style={styles.checkbox}>
           <input
@@ -108,7 +220,6 @@ const tanggalItem = new Date(year, month - 1, day); // Jam 00:00:00 lokal
         </div>
       </div>
 
-      {/* 🔄 Loader */}
       {loading ? (
         <div style={styles.loaderWrapper}>
           <div style={styles.loader}></div>
@@ -121,6 +232,18 @@ const tanggalItem = new Date(year, month - 1, day); // Jam 00:00:00 lokal
   );
 }
 
+// ===== App Utama =====
+export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  if (!isLoggedIn) {
+    return <Login onLogin={() => setIsLoggedIn(true)} />;
+  }
+
+  return <RekapPresensi />;
+}
+
+// ===== Styles =====
 const styles = {
   container: {
     maxWidth: 900,
@@ -189,7 +312,7 @@ const styles = {
   },
 };
 
-// Inject keyframes spin
+// Inject animasi spin
 const styleSheet = document.styleSheets[0];
 styleSheet.insertRule(`
   @keyframes spin {
@@ -197,5 +320,3 @@ styleSheet.insertRule(`
     100% { transform: rotate(360deg); }
   }
 `, styleSheet.cssRules.length);
-
-export default App;

@@ -29,6 +29,28 @@ const rowOddStyle = {
   backgroundColor: '#ffffff',
 };
 
+// Fungsi format jam agar tanpa detik
+const formatJam = (value) => {
+  if (!value || value === '-') return '-';
+
+  // Pisahkan jam dan alasan
+  let [jam, ...alasan] = String(value).split(' ');
+
+  // Ganti titik dengan titik dua
+  jam = jam.replace(/\./g, ':');
+
+  // Ambil hanya jam dan menit
+  if (jam.includes(':')) {
+    const parts = jam.split(':');
+    if (parts.length >= 2) {
+      jam = `${parts[0].padStart(2, '0')}:${parts[1]}`;
+    }
+  }
+
+  // Gabungkan kembali dengan alasan kalau ada
+  return alasan.length > 0 ? `${jam} ${alasan.join(' ')}` : jam;
+};
+
 const PresensiTable = ({ data }) => {
   return (
     <table style={tableStyle}>
@@ -55,10 +77,10 @@ const PresensiTable = ({ data }) => {
             <tr key={index} style={index % 2 === 0 ? rowEvenStyle : rowOddStyle}>
               <td style={tdStyle}>{item.nama}</td>
               <td style={tdStyle}>{item.tanggal}</td>
-              <td style={tdStyle}>{item.datangGabung}</td>
-              <td style={tdStyle}>{item.pulangGabung}</td>
-              <td style={tdStyle}>{item.jamIzin || '-'}</td>
-              <td style={tdStyle}>{item.jamKembali || '-'}</td>
+              <td style={tdStyle}>{formatJam(item.datangGabung)}</td>
+              <td style={tdStyle}>{formatJam(item.pulangGabung)}</td>
+              <td style={tdStyle}>{formatJam(item.jamIzin)}</td>
+              <td style={tdStyle}>{formatJam(item.jamKembali)}</td>
               <td
                 style={{
                   ...tdStyle,
@@ -66,7 +88,9 @@ const PresensiTable = ({ data }) => {
                   fontWeight: item.denda > 0 ? 'bold' : 'normal',
                 }}
               >
-                {item.denda > 0 ? `Rp${item.denda.toLocaleString('id-ID')}` : '-'}
+                {item.denda > 0
+                  ? `Rp${item.denda.toLocaleString('id-ID')}`
+                  : '-'}
               </td>
             </tr>
           ))
