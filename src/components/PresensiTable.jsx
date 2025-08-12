@@ -29,17 +29,44 @@ const rowOddStyle = {
   backgroundColor: '#ffffff',
 };
 
+// Fungsi format tanggal fleksibel
+const formatTanggal = (value) => {
+  if (!value || value === '-') return '-';
+
+  let d;
+
+  // Jika value berupa angka (timestamp)
+  if (!isNaN(value)) {
+    d = new Date(Number(value));
+  }
+  // Jika format dd/MM/yyyy
+  else if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+    const [day, month, year] = value.split('/');
+    d = new Date(`${year}-${month}-${day}`);
+  }
+  // Jika format yyyy-MM-dd atau string tanggal valid
+  else {
+    d = new Date(value);
+  }
+
+  // Jika tetap invalid
+  if (isNaN(d)) return value;
+
+  return d.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+};
+
 // Fungsi format jam agar tanpa detik
 const formatJam = (value) => {
   if (!value || value === '-') return '-';
 
-  // Pisahkan jam dan alasan
   let [jam, ...alasan] = String(value).split(' ');
 
-  // Ganti titik dengan titik dua
   jam = jam.replace(/\./g, ':');
 
-  // Ambil hanya jam dan menit
   if (jam.includes(':')) {
     const parts = jam.split(':');
     if (parts.length >= 2) {
@@ -47,7 +74,6 @@ const formatJam = (value) => {
     }
   }
 
-  // Gabungkan kembali dengan alasan kalau ada
   return alasan.length > 0 ? `${jam} ${alasan.join(' ')}` : jam;
 };
 
@@ -76,7 +102,7 @@ const PresensiTable = ({ data }) => {
           data.map((item, index) => (
             <tr key={index} style={index % 2 === 0 ? rowEvenStyle : rowOddStyle}>
               <td style={tdStyle}>{item.nama}</td>
-              <td style={tdStyle}>{item.tanggal}</td>
+              <td style={tdStyle}>{formatTanggal(item.tanggal)}</td>
               <td style={tdStyle}>{formatJam(item.datangGabung)}</td>
               <td style={tdStyle}>{formatJam(item.pulangGabung)}</td>
               <td style={tdStyle}>{formatJam(item.jamIzin)}</td>
