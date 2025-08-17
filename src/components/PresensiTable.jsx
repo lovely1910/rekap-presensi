@@ -1,55 +1,65 @@
 import React from 'react';
 
-const tableStyle = {
+const baseTableStyle = {
   width: '100%',
   borderCollapse: 'collapse',
   marginTop: '20px',
   fontSize: '16px',
 };
 
-const thStyle = {
-  backgroundColor: '#007acc',
-  color: '#fff',
-  border: '1px solid #ccc',
-  padding: '12px',
-  textAlign: 'left',
+// Light Mode
+const lightTheme = {
+  th: {
+    backgroundColor: '#007acc',
+    color: '#fff',
+    border: '1px solid #ccc',
+    padding: '12px',
+    textAlign: 'left',
+  },
+  td: {
+    border: '1px solid #ddd',
+    padding: '10px',
+    verticalAlign: 'top',
+    color: '#333',
+  },
+  rowEven: { backgroundColor: '#f9f9f9' },
+  rowOdd: { backgroundColor: '#ffffff' },
 };
 
-const tdStyle = {
-  border: '1px solid #ddd',
-  padding: '10px',
-  verticalAlign: 'top',
+// Dark Mode
+const darkTheme = {
+  th: {
+    backgroundColor: '#1e40af', // biru tua
+    color: '#f1f5f9',
+    border: '1px solid #334155',
+    padding: '12px',
+    textAlign: 'left',
+  },
+  td: {
+    border: '1px solid #334155',
+    padding: '10px',
+    verticalAlign: 'top',
+    color: '#e2e8f0',
+  },
+  rowEven: { backgroundColor: '#1e293b' },
+  rowOdd: { backgroundColor: '#0f172a' },
 };
 
-const rowEvenStyle = {
-  backgroundColor: '#f9f9f9',
-};
-
-const rowOddStyle = {
-  backgroundColor: '#ffffff',
-};
-
-// Fungsi format tanggal fleksibel
+// ===== Util Fungsi =====
 const formatTanggal = (value) => {
   if (!value || value === '-') return '-';
 
   let d;
 
-  // Jika value berupa angka (timestamp)
   if (!isNaN(value)) {
     d = new Date(Number(value));
-  }
-  // Jika format dd/MM/yyyy
-  else if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+  } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
     const [day, month, year] = value.split('/');
     d = new Date(`${year}-${month}-${day}`);
-  }
-  // Jika format yyyy-MM-dd atau string tanggal valid
-  else {
+  } else {
     d = new Date(value);
   }
 
-  // Jika tetap invalid
   if (isNaN(d)) return value;
 
   return d.toLocaleDateString('id-ID', {
@@ -59,7 +69,6 @@ const formatTanggal = (value) => {
   });
 };
 
-// Fungsi format jam agar tanpa detik
 const formatJam = (value) => {
   if (!value || value === '-') return '-';
 
@@ -77,40 +86,46 @@ const formatJam = (value) => {
   return alasan.length > 0 ? `${jam} ${alasan.join(' ')}` : jam;
 };
 
-const PresensiTable = ({ data }) => {
+// ===== Table Presensi =====
+const PresensiTable = ({ data, darkMode }) => {
+  const theme = darkMode ? darkTheme : lightTheme;
+
   return (
-    <table style={tableStyle}>
+    <table style={baseTableStyle}>
       <thead>
         <tr>
-          <th style={thStyle}>Nama</th>
-          <th style={thStyle}>Tanggal</th>
-          <th style={thStyle}>Datang</th>
-          <th style={thStyle}>Pulang</th>
-          <th style={thStyle}>Izin</th>
-          <th style={thStyle}>Kembali</th>
-          <th style={thStyle}>Denda</th>
+          <th style={theme.th}>Nama</th>
+          <th style={theme.th}>Tanggal</th>
+          <th style={theme.th}>Datang</th>
+          <th style={theme.th}>Pulang</th>
+          <th style={theme.th}>Izin</th>
+          <th style={theme.th}>Kembali</th>
+          <th style={theme.th}>Denda</th>
         </tr>
       </thead>
       <tbody>
         {data.length === 0 ? (
           <tr>
-            <td style={{ ...tdStyle, textAlign: 'center' }} colSpan={7}>
+            <td style={{ ...theme.td, textAlign: 'center' }} colSpan={7}>
               Tidak ada data
             </td>
           </tr>
         ) : (
           data.map((item, index) => (
-            <tr key={index} style={index % 2 === 0 ? rowEvenStyle : rowOddStyle}>
-              <td style={tdStyle}>{item.nama}</td>
-              <td style={tdStyle}>{formatTanggal(item.tanggal)}</td>
-              <td style={tdStyle}>{formatJam(item.datangGabung)}</td>
-              <td style={tdStyle}>{formatJam(item.pulangGabung)}</td>
-              <td style={tdStyle}>{formatJam(item.jamIzin)}</td>
-              <td style={tdStyle}>{formatJam(item.jamKembali)}</td>
+            <tr
+              key={index}
+              style={index % 2 === 0 ? theme.rowEven : theme.rowOdd}
+            >
+              <td style={theme.td}>{item.nama}</td>
+              <td style={theme.td}>{formatTanggal(item.tanggal)}</td>
+              <td style={theme.td}>{formatJam(item.datangGabung)}</td>
+              <td style={theme.td}>{formatJam(item.pulangGabung)}</td>
+              <td style={theme.td}>{formatJam(item.jamIzin)}</td>
+              <td style={theme.td}>{formatJam(item.jamKembali)}</td>
               <td
                 style={{
-                  ...tdStyle,
-                  color: item.denda > 0 ? 'red' : '#333',
+                  ...theme.td,
+                  color: item.denda > 0 ? '#f87171' : theme.td.color,
                   fontWeight: item.denda > 0 ? 'bold' : 'normal',
                 }}
               >

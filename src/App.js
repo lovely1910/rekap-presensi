@@ -27,24 +27,24 @@ function Login({ onLogin }) {
       justifyContent: 'center',
       alignItems: 'center',
       height: '100vh',
-      fontFamily: 'Arial, sans-serif',
-      backgroundColor: '#fff'
+      fontFamily: 'Segoe UI, sans-serif',
+      background: 'linear-gradient(135deg, #f9fafc, #eef3f8)'
     }}>
       <form
         onSubmit={handleSubmit}
         style={{
           backgroundColor: '#fff',
           padding: '30px 40px',
-          borderRadius: '8px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          borderRadius: '12px',
+          boxShadow: '0 6px 18px rgba(0,0,0,0.15)',
           minWidth: '320px',
-          border: '1px solid #eee'
+          transition: 'all 0.3s ease'
         }}
       >
         <h2 style={{
           textAlign: 'center',
           marginBottom: 20,
-          color: '#333'
+          color: '#1a73e8'
         }}>Login</h2>
 
         <div style={{ marginBottom: 15 }}>
@@ -99,13 +99,14 @@ function Login({ onLogin }) {
           style={{
             width: '100%',
             padding: 10,
-            backgroundColor: '#2196F3',
+            backgroundColor: '#1a73e8',
             color: '#fff',
             border: 'none',
             borderRadius: 6,
             fontWeight: 'bold',
             fontSize: 14,
-            cursor: 'pointer'
+            cursor: 'pointer',
+            transition: '0.3s ease'
           }}
         >
           Login
@@ -118,7 +119,7 @@ function Login({ onLogin }) {
 
 
 // ===== Halaman Rekap Presensi =====
-function RekapPresensi() {
+function RekapPresensi({ darkMode, setDarkMode }) {
   const [data, setData] = useState([]);
   const [selectedNama, setSelectedNama] = useState(null);
   const [dateRange, setDateRange] = useState([null, null]);
@@ -160,9 +161,24 @@ function RekapPresensi() {
     })
     .filter(item => (hanyaDenda ? item.denda > 0 : true));
 
+  const activeStyles = darkMode ? darkStyles : lightStyles;
+
   return (
-    <div style={styles.container}>
-      <h2 style={styles.title}>Rekap Presensi</h2>
+    <div style={activeStyles.container}>
+      <div style={{
+        display: "flex",
+        justifyContent: "space-between",
+        marginBottom: 20,
+        alignItems: "center"
+      }}>
+        <h2 style={activeStyles.title}>Rekap Presensi</h2>
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          style={activeStyles.toggleButton}
+        >
+          {darkMode ? "🌞 Light Mode" : "🌙 Dark Mode"}
+        </button>
+      </div>
 
       {/* Picker Nama */}
       <div style={{ marginBottom: 15 }}>
@@ -177,9 +193,9 @@ function RekapPresensi() {
       </div>
 
       {/* Rentang Tanggal */}
-      <div style={styles.fullRow}>
+      <div style={activeStyles.fullRow}>
         <div style={{ flex: 1 }}>
-          <label style={styles.label}>Rentang Tanggal:</label>
+          <label style={activeStyles.label}>Rentang Tanggal:</label>
           <DatePicker
             selectsRange
             startDate={startDate}
@@ -194,8 +210,8 @@ function RekapPresensi() {
       </div>
 
       {/* Checkbox & Aksi */}
-      <div style={styles.bottomActions}>
-        <label style={styles.checkbox}>
+      <div style={activeStyles.bottomActions}>
+        <label style={activeStyles.checkbox}>
           <input
             type="checkbox"
             checked={hanyaDenda}
@@ -209,20 +225,20 @@ function RekapPresensi() {
         <div style={{ display: 'flex', gap: 10 }}>
           <button
             onClick={() => exportToExcel(filteredData)}
-            style={styles.downloadButton}
+            style={activeStyles.downloadButton}
             disabled={loading}
           >
             📥 Download Excel
           </button>
-          <button onClick={handleRefresh} style={styles.refreshButton} disabled={loading}>
+          <button onClick={handleRefresh} style={activeStyles.refreshButton} disabled={loading}>
             🔄 Refresh
           </button>
         </div>
       </div>
 
       {loading ? (
-        <div style={styles.loaderWrapper}>
-          <div style={styles.loader}></div>
+        <div style={activeStyles.loaderWrapper}>
+          <div style={activeStyles.loader}></div>
           <div style={{ marginTop: 8 }}>Memuat data...</div>
         </div>
       ) : (
@@ -232,88 +248,100 @@ function RekapPresensi() {
   );
 }
 
+
+
 // ===== App Utama =====
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
 
   if (!isLoggedIn) {
     return <Login onLogin={() => setIsLoggedIn(true)} />;
   }
 
-  return <RekapPresensi />;
+  return <RekapPresensi darkMode={darkMode} setDarkMode={setDarkMode} />;
 }
 
+
+
 // ===== Styles =====
-const styles = {
+
+// Light Mode
+const lightStyles = {
   container: {
     maxWidth: 900,
     margin: '0 auto',
     padding: 30,
-    fontFamily: 'sans-serif',
+    fontFamily: 'Segoe UI, sans-serif',
+    background: 'linear-gradient(135deg, #f9fafc 0%, #eef3f8 100%)',
+    borderRadius: 12,
+    boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+    transition: 'all 0.4s ease',
   },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    marginBottom: 20,
+  title: { fontSize: 28, fontWeight: '700', color: '#1a73e8' },
+  toggleButton: {
+    padding: "8px 14px",
+    background: "#1a73e8",
+    border: "none",
+    borderRadius: 8,
+    color: "#fff",
+    fontWeight: "600",
+    cursor: "pointer",
+    transition: "0.3s ease",
   },
-  fullRow: {
-    display: 'flex',
-    gap: 20,
-    marginBottom: 15,
-  },
-  label: {
-    display: 'block',
-    fontWeight: '500',
-    fontSize: 14,
-    marginBottom: 5,
-  },
-  bottomActions: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  checkbox: {
-    fontSize: 14,
-  },
-  downloadButton: {
-    padding: '8px 16px',
-    backgroundColor: '#4CAF50',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 4,
-    fontWeight: 'bold',
-    cursor: 'pointer',
-  },
-  refreshButton: {
-    padding: '8px 16px',
-    backgroundColor: '#2196F3',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 4,
-    fontWeight: 'bold',
-    cursor: 'pointer',
-  },
-  loaderWrapper: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    marginTop: 40,
-  },
-  loader: {
-    width: 40,
-    height: 40,
-    border: '4px solid #ccc',
-    borderTop: '4px solid #2196F3',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-  },
+  fullRow: { display: 'flex', gap: 20, marginBottom: 15 },
+  label: { fontWeight: '600', fontSize: 14, marginBottom: 6, color: '#333' },
+  bottomActions: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 },
+  checkbox: { fontSize: 14, color: '#444', display: 'flex', alignItems: 'center' },
+  downloadButton: { padding: '10px 18px', background: 'linear-gradient(135deg, #43cea2, #185a9d)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: '600', cursor: 'pointer', transition: '0.3s ease' },
+  refreshButton: { padding: '10px 18px', background: 'linear-gradient(135deg, #36d1dc, #5b86e5)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: '600', cursor: 'pointer', transition: '0.3s ease' },
+  loaderWrapper: { display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 40 },
+  loader: { width: 50, height: 50, border: '5px solid #eee', borderTop: '5px solid #1a73e8', borderRadius: '50%', animation: 'spin 1s linear infinite' },
 };
 
-// Inject animasi spin
+// Dark Mode
+const darkStyles = {
+  container: {
+    maxWidth: 900,
+    margin: '0 auto',
+    padding: 30,
+    fontFamily: 'Segoe UI, sans-serif',
+    background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+    borderRadius: 12,
+    boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+    color: '#e2e8f0',
+    transition: 'all 0.4s ease',
+  },
+  title: { fontSize: 28, fontWeight: '700', color: '#60a5fa' },
+  toggleButton: {
+    padding: "8px 14px",
+    background: "#334155",
+    border: "1px solid #475569",
+    borderRadius: 8,
+    color: "#e2e8f0",
+    fontWeight: "600",
+    cursor: "pointer",
+    transition: "0.3s ease",
+  },
+  fullRow: { display: 'flex', gap: 20, marginBottom: 15 },
+  label: { fontWeight: '600', fontSize: 14, marginBottom: 6, color: '#cbd5e1' },
+  bottomActions: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 },
+  checkbox: { fontSize: 14, color: '#e2e8f0', display: 'flex', alignItems: 'center' },
+  downloadButton: { padding: '10px 18px', background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: '600', cursor: 'pointer', transition: '0.3s ease' },
+  refreshButton: { padding: '10px 18px', background: 'linear-gradient(135deg, #9333ea, #6366f1)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: '600', cursor: 'pointer', transition: '0.3s ease' },
+  loaderWrapper: { display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 40 },
+  loader: { width: 50, height: 50, border: '5px solid #475569', borderTop: '5px solid #60a5fa', borderRadius: '50%', animation: 'spin 1s linear infinite' },
+};
+
+// Animasi tambahan
 const styleSheet = document.styleSheets[0];
+styleSheet.insertRule(`
+  button:hover {
+    filter: brightness(1.1);
+    transform: translateY(-2px);
+  }
+`, styleSheet.cssRules.length);
+
 styleSheet.insertRule(`
   @keyframes spin {
     0% { transform: rotate(0deg); }
