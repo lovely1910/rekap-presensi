@@ -5,14 +5,17 @@ import { db } from './firebase';
 export const fetchAllPresensiData = async () => {
   const hasilAkhir = [];
 
-  const formatTanggal = (input) => {
-    if (input instanceof Date) {
-      return input.toISOString().split('T')[0];
-    } else if (input?.toDate) {
-      return input.toDate().toISOString().split('T')[0];
-    } else if (typeof input === 'string') {
-      return input;
-    }
+  const getDateKey = (date) => {
+    const d = date instanceof Date ? date : date?.toDate?.() || new Date(date);
+    if (isNaN(d)) return null;
+    return d.toISOString().split("T")[0]; // yyyy-mm-dd
+  };
+
+  const formatJam = (val) => {
+    if (!val) return null;
+    if (val instanceof Date) return val.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+    if (val?.toDate) return val.toDate().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+    if (typeof val === "string") return val; // asumsinya string HH:mm
     return null;
   };
 
@@ -26,157 +29,147 @@ export const fetchAllPresensiData = async () => {
       const nama = userDoc.data().nama || 'Tanpa Nama';
       const hasilUser = {};
 
-      // === PRESENSI ===
-      const presensiSnapshot = await getDocs(collection(db, `users/${uid}/presensi`));
+      // =============== PRESENSI ===============
+      const presensiSnapshot = await getDocs(
+        collection(db, `users/${uid}/presensi`)
+      );
 
       for (const presensiDoc of presensiSnapshot.docs) {
-        const tanggal = presensiDoc.id;
-        const logsSnapshot = await getDocs(
-          collection(db, `users/${uid}/presensi/${tanggal}/logs`)
-        );
+        const rawTanggal = presensiDoc.id;
+        const tanggalObj = new Date(rawTanggal);
+        const key = getDateKey(tanggalObj);
+        if (!key) continue;
 
-        hasilUser[tanggal] = {
-          nama,
-          tanggal,
-          jamDatang: null,
-          alasanTerlambat: null,
-          jamPulang: null,
-          alasanPulang: null,
-          jamIzin: null,
-          jamKembali: null,
-          alasanIzin: null,
-          denda: 0,
-        };
+        if (!hasilUser[key]) {
+          hasilUser[key] = {
+            uid,
+            nama,
+            tanggal: tanggalObj,
+            jamDatang: null,
+            jamPulang: null,
+            alasanTerlambat: null,
+            jamIzin: null,
+            jamKembali: null,
+            alasanIzin: null,
+            alasanIzinPulang: null,
+            denda: 0,
+          };
+        }
+
+        const logsSnapshot = await getDocs(
+          collection(db, `users/${uid}/presensi/${rawTanggal}/logs`)
+        );
 
         logsSnapshot.forEach((doc) => {
           const data = doc.data();
           const waktu = data.timestamp?.toDate?.();
           if (!waktu) return;
 
-          if (data.jenis === 'Masuk') {
-            hasilUser[tanggal].jamDatang = waktu.toLocaleTimeString('id-ID');
-          } else if (data.jenis === 'Pulang') {
-            hasilUser[tanggal].jamPulang = waktu.toLocaleTimeString('id-ID');
+          if (data.jenis === "Masuk") {
+            hasilUser[key].jamDatang = waktu;
+          } else if (data.jenis === "Pulang") {
+            hasilUser[key].jamPulang = waktu;
           }
         });
 
         // Hitung denda
-        const batas = new Date(tanggal);
+        const batas = new Date(tanggalObj);
         batas.setHours(8, 5, 0, 0);
-        const jamDatangDate = logsSnapshot.docs.find(
-          (d) => d.data().jenis === 'Masuk'
-        )?.data().timestamp?.toDate?.();
-
-        if (jamDatangDate && jamDatangDate > batas) {
-          hasilUser[tanggal].denda = 25000;
+        if (hasilUser[key].jamDatang && hasilUser[key].jamDatang > batas) {
+          hasilUser[key].denda = 25000;
         }
       }
 
-      // === IZIN (PULANG & KELUAR) ===
+      // =============== IZIN ===============
       izinSnapshot.forEach((doc) => {
         const data = doc.data();
         if (data.uid !== uid) return;
 
-        const tanggalIzin = formatTanggal(data.tanggal);
+        const tanggalIzin = getDateKey(data.tanggal);
         if (!tanggalIzin) return;
 
         if (!hasilUser[tanggalIzin]) {
           hasilUser[tanggalIzin] = {
+            uid,
             nama,
-            tanggal: tanggalIzin,
+            tanggal: data.tanggal?.toDate?.() || new Date(data.tanggal),
             jamDatang: null,
-            alasanTerlambat: null,
             jamPulang: null,
-            alasanPulang: null,
+            alasanTerlambat: null,
             jamIzin: null,
             jamKembali: null,
             alasanIzin: null,
+            alasanIzinPulang: null,
             denda: 0,
           };
         }
 
-if (data.jenis === 'pulang') {
-  // Urutan prioritas ambil jam pulang dari izin
-  if (data.jam) {
-    // Kalau di Firestore disimpan sebagai string HH:mm
-    hasilUser[tanggalIzin].jamPulang = data.jam;
-  } else if (data.waktuPulang?.toDate) {
-    hasilUser[tanggalIzin].jamPulang = data.waktuPulang
-      .toDate()
-      .toLocaleTimeString('id-ID');
-  } else if (data.mulai?.toDate) {
-    hasilUser[tanggalIzin].jamPulang = data.mulai
-      .toDate()
-      .toLocaleTimeString('id-ID');
-  } else if (data.timestamp?.toDate) {
-    // fallback terakhir: pakai timestamp dokumen izin
-    hasilUser[tanggalIzin].jamPulang = data.timestamp
-      .toDate()
-      .toLocaleTimeString('id-ID');
-  }
+        if (data.jenis === "pulang") {
+          let jamIzinPulang =
+            data.jam ||
+            data.jam?.toDate?.()?.toLocaleTimeString("id-ID") ||
+            data.timestamp?.toDate?.()?.toLocaleTimeString("id-ID") ||
+            null;
 
-  hasilUser[tanggalIzin].alasanPulang = data.alasan || '-';
-}
-
-        else {
-          if (data.mulai?.toDate) {
-            hasilUser[tanggalIzin].jamIzin = data.mulai
-              .toDate()
-              .toLocaleTimeString('id-ID');
+          if (!hasilUser[tanggalIzin].jamPulang) {
+            hasilUser[tanggalIzin].jamPulang = jamIzinPulang;
           }
-          if (data.kembali?.toDate) {
-            hasilUser[tanggalIzin].jamKembali = data.kembali
-              .toDate()
-              .toLocaleTimeString('id-ID');
-          }
-          hasilUser[tanggalIzin].alasanIzin = data.alasan || '-';
+          hasilUser[tanggalIzin].alasanIzinPulang = data.alasan || "-";
+        } else {
+          hasilUser[tanggalIzin].jamIzin = formatJam(data.mulai);
+          hasilUser[tanggalIzin].jamKembali = formatJam(data.kembali);
+          hasilUser[tanggalIzin].alasanIzin = data.alasan || "-";
         }
       });
 
-      // === IZIN TERLAMBAT ===
+      // =============== IZIN TERLAMBAT ===============
       izinTerlambatSnapshot.forEach((doc) => {
         const data = doc.data();
         if (data.uid !== uid) return;
 
-        const tanggalTerlambat = formatTanggal(data.timestamp);
-        if (!tanggalTerlambat) return;
+        const key = getDateKey(data.timestamp);
+        if (!key) return;
 
-        if (!hasilUser[tanggalTerlambat]) {
-          hasilUser[tanggalTerlambat] = {
+        if (!hasilUser[key]) {
+          hasilUser[key] = {
+            uid,
             nama,
-            tanggal: tanggalTerlambat,
+            tanggal: data.timestamp?.toDate?.() || new Date(),
             jamDatang: null,
-            alasanTerlambat: null,
             jamPulang: null,
-            alasanPulang: null,
+            alasanTerlambat: null,
             jamIzin: null,
             jamKembali: null,
             alasanIzin: null,
+            alasanIzinPulang: null,
             denda: 0,
           };
         }
 
-        hasilUser[tanggalTerlambat].alasanTerlambat = data.alasan || '-';
+        hasilUser[key].alasanTerlambat = data.alasan || "-";
       });
 
-      // === GABUNG FIELD TAMPILAN ===
+      // =============== FORMAT UNTUK TABEL ADMIN ===============
       Object.values(hasilUser).forEach((item) => {
+        item.jamDatang = formatJam(item.jamDatang);
+        item.jamPulang = formatJam(item.jamPulang);
+
         // Gabung datang + izin terlambat
         if (item.jamDatang || item.alasanTerlambat) {
-          item.datangGabung = `${item.jamDatang || '-'}${
-            item.alasanTerlambat ? ` (${item.alasanTerlambat})` : ''
+          item.datangGabung = `${item.jamDatang || "-"}${
+            item.alasanTerlambat ? ` (${item.alasanTerlambat})` : ""
           }`;
         } else {
-          item.datangGabung = '-';
+          item.datangGabung = "-";
         }
 
         // Gabung pulang + izin pulang
-        if (item.jamPulang || item.alasanPulang) {
-          item.pulangGabung = `${item.jamPulang || '-'}${
-            item.alasanPulang ? ` (${item.alasanPulang})` : ''
+        if (item.jamPulang || item.alasanIzinPulang) {
+          item.pulangGabung = `${item.jamPulang || "-"}${
+            item.alasanIzinPulang ? ` (${item.alasanIzinPulang})` : ""
           }`;
         } else {
-          item.pulangGabung = '-';
+          item.pulangGabung = "-";
         }
       });
 
@@ -185,7 +178,7 @@ if (data.jenis === 'pulang') {
 
     return hasilAkhir.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
   } catch (error) {
-    console.error('❌ Gagal ambil data:', error);
+    console.error("❌ Gagal ambil data:", error);
     return [];
   }
 };
