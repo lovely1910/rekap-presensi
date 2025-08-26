@@ -1,5 +1,5 @@
 // fetchAllPresensi.js
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from './firebase';
 
 export const fetchAllPresensiData = async () => {
@@ -13,8 +13,10 @@ export const fetchAllPresensiData = async () => {
 
   const formatJam = (val) => {
     if (!val) return null;
-    if (val instanceof Date) return val.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
-    if (val?.toDate) return val.toDate().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+    if (val instanceof Date)
+      return val.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+    if (val?.toDate)
+      return val.toDate().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
     if (typeof val === "string") return val; // asumsinya string HH:mm
     return null;
   };
@@ -23,13 +25,14 @@ export const fetchAllPresensiData = async () => {
     const userSnapshot = await getDocs(collection(db, 'users'));
     const izinSnapshot = await getDocs(collection(db, 'izin'));
     const izinTerlambatSnapshot = await getDocs(collection(db, 'izinTerlambat'));
+    const globalPulangSnapshot = await getDocs(collection(db, 'presensi'));
 
     for (const userDoc of userSnapshot.docs) {
       const uid = userDoc.id;
       const nama = userDoc.data().nama || 'Tanpa Nama';
       const hasilUser = {};
 
-      // =============== PRESENSI ===============
+      // =============== PRESENSI (subkoleksi) ===============
       const presensiSnapshot = await getDocs(
         collection(db, `users/${uid}/presensi`)
       );
@@ -79,6 +82,37 @@ export const fetchAllPresensiData = async () => {
           hasilUser[key].denda = 25000;
         }
       }
+
+      // =============== GLOBAL PRESENSI (tombol Pulang) ===============
+      globalPulangSnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.uid !== uid) return;
+        if (data.jenis !== "pulang") return;
+
+        const tanggalObj = data.tanggal?.toDate?.() || new Date(data.tanggal);
+        const key = getDateKey(tanggalObj);
+        if (!key) return;
+
+        if (!hasilUser[key]) {
+          hasilUser[key] = {
+            uid,
+            nama,
+            tanggal: tanggalObj,
+            jamDatang: null,
+            jamPulang: null,
+            alasanTerlambat: null,
+            jamIzin: null,
+            jamKembali: null,
+            alasanIzin: null,
+            alasanIzinPulang: null,
+            denda: 0,
+          };
+        }
+
+        if (!hasilUser[key].jamPulang) {
+          hasilUser[key].jamPulang = data.timestamp?.toDate?.() || null;
+        }
+      });
 
       // =============== IZIN ===============
       izinSnapshot.forEach((doc) => {
